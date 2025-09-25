@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QMessageBox, QWidget, QVBoxLayout
 
 class BasicWindow(QMainWindow):
     """
@@ -17,13 +17,33 @@ class BasicWindow(QMainWindow):
         사용자 인터페이스(UI)의 기본 속성을 설정합니다.
         """
         # 윈도우 제목 설정
-        self.setWindowTitle('기본 창')
+        self.setWindowTitle('계산기')
         
         # 윈도우 위치와 크기 설정 (x, y, 너비, 높이)
         self.setGeometry(300, 300, 400, 300)
+
+        # 중앙 위젯과 레이아웃 설정
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+
+        # 버튼 생성
+        button = QPushButton('메시지 보기', self)
+        
+        # 레이아웃에 버튼 추가
+        layout.addWidget(button)
+        
+        # 버튼 클릭 시그널을 슬롯(메서드)에 연결
+        button.clicked.connect(self.show_message)
         
         # 윈도우를 화면에 표시
         self.show()
+
+    def show_message(self):
+        """
+        버튼 클릭 시 메시지 박스를 표시하는 슬롯
+        """
+        QMessageBox.information(self, '알림', 'Button Clicked')
 
 if __name__ == '__main__':
     # QApplication 인스턴스 생성: GUI 애플리케이션을 관리하는 핵심 객체입니다.
