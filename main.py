@@ -1,5 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QMessageBox, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QVBoxLayout, QTextEdit
 
 class BasicWindow(QMainWindow):
     """
@@ -27,10 +28,16 @@ class BasicWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
 
+        # 텍스트 에디터 생성
+        self.text_edit = QTextEdit()
+        self.text_edit.setReadOnly(True) # 읽기 전용으로 설정 (선택 사항)
+
         # 버튼 생성
         button = QPushButton('메시지 보기', self)
         
         # 레이아웃에 버튼 추가
+        # 레이아웃에 위젯 추가 (텍스트 에디터, 버튼 순)
+        layout.addWidget(self.text_edit)
         layout.addWidget(button)
         
         # 버튼 클릭 시그널을 슬롯(메서드)에 연결
@@ -42,8 +49,10 @@ class BasicWindow(QMainWindow):
     def show_message(self):
         """
         버튼 클릭 시 메시지 박스를 표시하는 슬롯
+        버튼 클릭 시 텍스트 에디터에 메시지를 추가하는 슬롯
         """
         QMessageBox.information(self, '알림', 'Button Clicked')
+        self.text_edit.append("Btton Clicked")
 
 if __name__ == '__main__':
     # QApplication 인스턴스 생성: GUI 애플리케이션을 관리하는 핵심 객체입니다.
