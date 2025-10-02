@@ -1,6 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QMessageBox, QWidget, QVBoxLayout
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QVBoxLayout, QTextEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QMessageBox, QWidget, QVBoxLayout, QTextEdit
 
 class BasicWindow(QMainWindow):
     """
@@ -34,25 +33,31 @@ class BasicWindow(QMainWindow):
 
         # 버튼 생성
         button = QPushButton('메시지 보기', self)
+        clear_button = QPushButton('Clear', self)
         
-        # 레이아웃에 버튼 추가
         # 레이아웃에 위젯 추가 (텍스트 에디터, 버튼 순)
         layout.addWidget(self.text_edit)
         layout.addWidget(button)
+        layout.addWidget(clear_button)
         
         # 버튼 클릭 시그널을 슬롯(메서드)에 연결
         button.clicked.connect(self.show_message)
+        clear_button.clicked.connect(self.clear_text)
         
         # 윈도우를 화면에 표시
         self.show()
 
     def show_message(self):
         """
-        버튼 클릭 시 메시지 박스를 표시하는 슬롯
         버튼 클릭 시 텍스트 에디터에 메시지를 추가하는 슬롯
         """
-        QMessageBox.information(self, '알림', 'Button Clicked')
-        self.text_edit.append("Btton Clicked")
+        self.text_edit.append("Button Clicked")
+
+    def clear_text(self):
+        """
+        Clear 버튼 클릭 시 텍스트 에디터의 내용을 모두 지우는 슬롯
+        """
+        self.text_edit.clear()
 
 if __name__ == '__main__':
     # QApplication 인스턴스 생성: GUI 애플리케이션을 관리하는 핵심 객체입니다.
