@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext, Menu, filedialog, messagebox
+import os
 
 class NotepadApp:
     """
@@ -12,8 +13,8 @@ class NotepadApp:
         self.root = root
         self.root.geometry("800x600")
 
-        # 텍스트 영역 생성 (스크롤 기능 포함)
-        self.text_area = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, undo=True)
+        # 텍스트 영역 생성 (스크롤 기능 포함, undo/redo 활성화)
+        self.text_area = scrolledtext.ScrolledText(self.root, wrap=tk.WORD, undo=True, maxundo=-1)
         self.text_area.pack(expand=True, fill='both')
         
         # 메뉴바 생성
@@ -36,13 +37,32 @@ class NotepadApp:
 
         # 파일 메뉴
         file_menu = Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label="파일(F)", menu=file_menu)
-        file_menu.add_command(label="새로 만들기(N)", command=self.new_file)
-        file_menu.add_command(label="열기(O)...", command=self.open_file)
-        file_menu.add_command(label="저장(S)", command=self.save_file)
+        menu_bar.add_cascade(label="파일(F)", menu=file_menu, underline=3)
+        file_menu.add_command(label="새로 만들기(N)", command=self.new_file, accelerator="Ctrl+N", underline=7)
+        file_menu.add_command(label="열기(O)...", command=self.open_file, accelerator="Ctrl+O", underline=4)
+        file_menu.add_command(label="저장(S)", command=self.save_file, accelerator="Ctrl+S", underline=3)
         file_menu.add_command(label="다른 이름으로 저장(A)...", command=self.save_as_file)
         file_menu.add_separator()
         file_menu.add_command(label="끝내기(X)", command=self.exit_app)
+
+        # 편집 메뉴
+        edit_menu = Menu(menu_bar, tearoff=0)
+        menu_bar.add_cascade(label="편집(E)", menu=edit_menu, underline=3)
+        edit_menu.add_command(label="실행 취소(U)", command=self.text_area.edit_undo, accelerator="Ctrl+Z", underline=6)
+        edit_menu.add_command(label="다시 실행(R)", command=self.text_area.edit_redo, accelerator="Ctrl+Y", underline=6)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="잘라내기(T)", command=lambda: self.text_area.event_generate("<<Cut>>"), accelerator="Ctrl+X", underline=5)
+        edit_menu.add_command(label="복사(C)", command=lambda: self.text_area.event_generate("<<Copy>>"), accelerator="Ctrl+C", underline=3)
+        edit_menu.add_command(label="붙여넣기(P)", command=lambda: self.text_area.event_generate("<<Paste>>"), accelerator="Ctrl+V", underline=5)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="모두 선택(A)", command=self.select_all, accelerator="Ctrl+A", underline=6)
+
+        # 단축키 바인딩
+        self.root.bind_all("<Control-n>", lambda event: self.new_file())
+        self.root.bind_all("<Control-o>", lambda event: self.open_file())
+        self.root.bind_all("<Control-s>", lambda event: self.save_file())
+        self.root.bind_all("<Control-a>", lambda event: self.select_all())
+        # Ctrl+X, C, V, Z, Y는 텍스트 위젯에서 기본적으로 지원됩니다.
 
     def new_file(self):
         """
@@ -51,6 +71,7 @@ class NotepadApp:
         if self.check_unsaved_changes():
             self.text_area.delete(1.0, tk.END)
             self.current_file = None
+            self.text_area.edit_modified(False)
             self.update_title()
 
     def open_file(self):
@@ -70,6 +91,7 @@ class NotepadApp:
                     self.text_area.delete(1.0, tk.END)
                     self.text_area.insert(tk.INSERT, file.read())
                 self.current_file = file_path
+                self.text_area.edit_modified(False)
                 self.update_title()
             except Exception as e:
                 messagebox.showerror("오류", f"파일을 여는 중 오류가 발생했습니다: {e}")
@@ -81,9 +103,13 @@ class NotepadApp:
         if self.current_file:
             try:
                 content = self.text_area.get(1.0, tk.END)
+                # tkinter 텍스트 위젯은 항상 마지막에 개행 문자를 추가하므로 제거해줍니다.
+                if content.endswith('\n'):
+                    content = content[:-1]
                 with open(self.current_file, "w", encoding="utf-8") as file:
                     file.write(content)
-                self.update_title() # 저장 후 제목 업데이트
+                self.text_area.edit_modified(False) # 저장 후 수정 상태 초기화
+                self.update_title()
             except Exception as e:
                 messagebox.showerror("오류", f"파일을 저장하는 중 오류가 발생했습니다: {e}")
         else:
@@ -113,28 +139,13 @@ class NotepadApp:
         저장되지 않은 변경 사항이 있는지 확인하고 사용자에게 저장할지 묻습니다.
         사용자가 '취소'를 누르면 False를, 그 외에는 True를 반환합니다.
         """
-        content = self.text_area.get(1.0, tk.END).strip()
-        if not content: # 내용이 없으면 그냥 진행
-            return True
-
-        # 파일이 열려있을 때, 파일 내용과 현재 내용이 다른지 확인
-        is_modified = True
-        if self.current_file:
-            try:
-                with open(self.current_file, "r", encoding="utf-8") as f:
-                    if f.read() == self.text_area.get(1.0, tk.END):
-                        is_modified = False
-            except FileNotFoundError:
-                pass # 파일이 아직 디스크에 없으면 수정된 것으로 간주
-            except Exception as e:
-                messagebox.showwarning("경고", f"파일 확인 중 오류: {e}")
-
-
-        if is_modified:
-            response = messagebox.askyesnocancel("메모장", f"변경 내용을 {self.current_file or '제목 없음'}에 저장하시겠습니까?")
+        # text_area.edit_modified()는 내용 변경 여부를 boolean으로 반환합니다.
+        if self.text_area.edit_modified():
+            response = messagebox.askyesnocancel("메모장", f"변경 내용을 {os.path.basename(self.current_file) if self.current_file else '제목 없음'}에 저장하시겠습니까?")
             if response is True:  # '예'
                 self.save_file()
-                return True
+                # save_file 후에도 여전히 수정된 상태이면 저장 실패로 간주하고 종료 취소
+                return not self.text_area.edit_modified()
             elif response is False:  # '아니요'
                 return True
             else:  # '취소' (None)
@@ -143,13 +154,19 @@ class NotepadApp:
 
     def update_title(self):
         """창 제목을 현재 파일 상태에 맞게 업데이트합니다."""
+        modified_marker = "*" if self.text_area.edit_modified() else ""
         title = "제목 없음"
         if self.current_file:
-            # os.path.basename을 사용하면 전체 경로 대신 파일 이름만 가져올 수 있습니다.
-            import os
             title = os.path.basename(self.current_file)
         
-        self.root.title(f"{title} - 메모장")
+        self.root.title(f"{modified_marker}{title} - 메모장")
+
+    def select_all(self, event=None):
+        """
+        텍스트 영역의 모든 텍스트를 선택합니다.
+        """
+        self.text_area.tag_add('sel', '1.0', 'end')
+        return 'break' # 다른 바인딩이 실행되지 않도록 합니다.
 
 
 if __name__ == "__main__":
